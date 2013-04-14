@@ -32,6 +32,7 @@
  */
 
 enum cmd_retval cmd_choose_list_exec(struct cmd *, struct cmd_q *);
+void		cmd_choose_list_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_choose_list_entry = {
 	"choose-list", NULL,
@@ -40,8 +41,18 @@ const struct cmd_entry cmd_choose_list_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_choose_list_exec
+	cmd_choose_list_exec,
+	cmd_choose_list_prepare
 };
+
+void
+cmd_choose_list_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	cmdq->cmd_ctx.c = cmd_current_client(cmdq);
+	cmdq->cmd_ctx.wl = cmd_find_window(cmdq, args_get(args, 't'), NULL);
+}
 
 enum cmd_retval
 cmd_choose_list_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -53,7 +64,7 @@ cmd_choose_list_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*template, *item, *copy, *list;
 	u_int				 idx;
 
-	if ((c = cmd_current_client(cmdq)) == NULL) {
+	if ((c = cmdq->cmd_ctx.c) == NULL) {
 		cmdq_error(cmdq, "no client available");
 		return (CMD_RETURN_ERROR);
 	}
@@ -61,7 +72,7 @@ cmd_choose_list_exec(struct cmd *self, struct cmd_q *cmdq)
 	if ((list1 = args_get(args, 'l')) == NULL)
 		return (CMD_RETURN_ERROR);
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), NULL)) == NULL)
+	if ((wl = cmdq->cmd_ctx.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (window_pane_set_mode(wl->window->active, &window_choose_mode) != 0)

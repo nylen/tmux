@@ -28,6 +28,7 @@
  */
 
 enum cmd_retval	 cmd_send_keys_exec(struct cmd *, struct cmd_q *);
+void		 cmd_send_keys_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_send_keys_entry = {
 	"send-keys", "send",
@@ -36,7 +37,8 @@ const struct cmd_entry cmd_send_keys_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_send_keys_exec
+	cmd_send_keys_exec,
+	cmd_send_keys_prepare
 };
 
 const struct cmd_entry cmd_send_prefix_entry = {
@@ -46,8 +48,18 @@ const struct cmd_entry cmd_send_prefix_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_send_keys_exec
+	cmd_send_keys_exec,
+	cmd_send_keys_prepare
 };
+
+void
+cmd_send_keys_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	cmdq->cmd_ctx.wl = cmd_find_pane(cmdq, args_get(args, 't'),
+			&cmdq->cmd_ctx.s, &cmdq->cmd_ctx.wp);
+}
 
 enum cmd_retval
 cmd_send_keys_exec(struct cmd *self, struct cmd_q *cmdq)
@@ -59,8 +71,10 @@ cmd_send_keys_exec(struct cmd *self, struct cmd_q *cmdq)
 	const char		*str;
 	int			 i, key;
 
-	if (cmd_find_pane(cmdq, args_get(args, 't'), &s, &wp) == NULL)
+	if (cmdq->cmd_ctx.wl == NULL)
 		return (CMD_RETURN_ERROR);
+	s = cmdq->cmd_ctx.s;
+	wp = cmdq->cmd_ctx.wp;
 
 	if (self->entry == &cmd_send_prefix_entry) {
 		if (args_has(args, '2'))

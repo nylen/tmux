@@ -25,6 +25,7 @@
  */
 
 enum cmd_retval	 cmd_has_session_exec(struct cmd *, struct cmd_q *);
+void		 cmd_has_session_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_has_session_entry = {
 	"has-session", "has",
@@ -33,15 +34,21 @@ const struct cmd_entry cmd_has_session_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_has_session_exec
+	cmd_has_session_exec,
+	cmd_has_session_prepare
 };
 
-enum cmd_retval
-cmd_has_session_exec(struct cmd *self, struct cmd_q *cmdq)
+void cmd_has_session_prepare(struct cmd *self, struct cmd_q *cmdq)
 {
 	struct args	*args = self->args;
 
-	if (cmd_find_session(cmdq, args_get(args, 't'), 0) == NULL)
+	cmdq->cmd_ctx.s = cmd_find_session(cmdq, args_get(args, 't'), 0);
+}
+
+enum cmd_retval
+cmd_has_session_exec(unused struct cmd *self, struct cmd_q *cmdq)
+{
+	if (cmdq->cmd_ctx.s == NULL)
 		return (CMD_RETURN_ERROR);
 
 	return (CMD_RETURN_NORMAL);

@@ -96,9 +96,11 @@ const struct cmd_entry *cmd_table[] = {
 	&cmd_server_info_entry,
 	&cmd_set_buffer_entry,
 	&cmd_set_environment_entry,
+	&cmd_set_hook_entry,
 	&cmd_set_option_entry,
 	&cmd_set_window_option_entry,
 	&cmd_show_buffer_entry,
+	&cmd_show_hooks_entry,
 	&cmd_show_environment_entry,
 	&cmd_show_messages_entry,
 	&cmd_show_options_entry,
@@ -287,6 +289,20 @@ usage:
 	xasprintf(cause, "usage: %s %s", entry->name, entry->usage);
 	return (NULL);
 }
+
+void
+cmd_set_context(struct cmd_q *cmdq)
+{
+	memset(&cmdq->cmd_ctx, 0, sizeof(struct cmd_ctx));
+
+	cmdq->cmd_ctx.c = cmdq->client;
+	cmdq->cmd_ctx.s = cmdq->client != NULL ? cmdq->client->session : NULL;
+	cmdq->cmd_ctx.s2 = NULL;
+	cmdq->cmd_ctx.w = NULL;
+	cmdq->cmd_ctx.wl = NULL;
+	cmdq->cmd_ctx.wp = NULL;
+}
+
 
 size_t
 cmd_print(struct cmd *cmd, char *buf, size_t len)

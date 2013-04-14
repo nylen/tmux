@@ -32,6 +32,7 @@
 void	cmd_command_prompt_key_binding(struct cmd *, int);
 int	cmd_command_prompt_check(struct args *);
 enum cmd_retval	cmd_command_prompt_exec(struct cmd *, struct cmd_q *);
+void	cmd_command_prompt_prepare(struct cmd *, struct cmd_q *);
 
 int	cmd_command_prompt_callback(void *, const char *);
 void	cmd_command_prompt_free(void *);
@@ -43,7 +44,8 @@ const struct cmd_entry cmd_command_prompt_entry = {
 	0,
 	cmd_command_prompt_key_binding,
 	NULL,
-	cmd_command_prompt_exec
+	cmd_command_prompt_exec,
+	cmd_command_prompt_prepare
 };
 
 struct cmd_command_prompt_cdata {
@@ -84,6 +86,14 @@ cmd_command_prompt_key_binding(struct cmd *self, int key)
 	}
 }
 
+void
+cmd_command_prompt_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	cmdq->cmd_ctx.c = cmd_find_client(cmdq, args_get(args, 't'), 0);
+}
+
 enum cmd_retval
 cmd_command_prompt_exec(struct cmd *self, struct cmd_q *cmdq)
 {
@@ -94,7 +104,7 @@ cmd_command_prompt_exec(struct cmd *self, struct cmd_q *cmdq)
 	char				*prompt, *ptr, *input = NULL;
 	size_t				 n;
 
-	if ((c = cmd_find_client(cmdq, args_get(args, 't'), 0)) == NULL)
+	if ((c = cmdq->cmd_ctx.c) == NULL)
 		return (CMD_RETURN_ERROR);
 
 	if (c->prompt_string != NULL)

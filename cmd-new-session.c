@@ -32,6 +32,7 @@
 
 enum cmd_retval	 cmd_new_session_check(struct args *);
 enum cmd_retval	 cmd_new_session_exec(struct cmd *, struct cmd_q *);
+void		 cmd_new_session_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_new_session_entry = {
 	"new-session", "new",
@@ -41,7 +42,8 @@ const struct cmd_entry cmd_new_session_entry = {
 	CMD_STARTSERVER|CMD_CANTNEST|CMD_SENDENVIRON,
 	NULL,
 	cmd_new_session_check,
-	cmd_new_session_exec
+	cmd_new_session_exec,
+	NULL
 };
 
 enum cmd_retval

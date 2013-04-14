@@ -25,6 +25,7 @@
  */
 
 enum cmd_retval	 cmd_unlink_window_exec(struct cmd *, struct cmd_q *);
+void		 cmd_unlink_window_prepare(struct cmd *, struct cmd_q *);
 
 const struct cmd_entry cmd_unlink_window_entry = {
 	"unlink-window", "unlinkw",
@@ -33,22 +34,32 @@ const struct cmd_entry cmd_unlink_window_entry = {
 	0,
 	NULL,
 	NULL,
-	cmd_unlink_window_exec
+	cmd_unlink_window_exec,
+	cmd_unlink_window_prepare
 };
+
+void
+cmd_unlink_window_prepare(struct cmd *self, struct cmd_q *cmdq)
+{
+	struct args	*args = self->args;
+
+	cmdq->cmd_ctx.wl = cmd_find_window(cmdq, args_get(args, 't'),
+			&cmdq->cmd_ctx.s);
+}
 
 enum cmd_retval
 cmd_unlink_window_exec(struct cmd *self, struct cmd_q *cmdq)
 {
-	struct args		*args = self->args;
 	struct winlink		*wl;
 	struct window		*w;
 	struct session		*s, *s2;
 	struct session_group	*sg;
 	u_int			 references;
 
-	if ((wl = cmd_find_window(cmdq, args_get(args, 't'), &s)) == NULL)
+	if ((wl = cmdq->cmd_ctx.wl) == NULL)
 		return (CMD_RETURN_ERROR);
 	w = wl->window;
+	s = cmdq->cmd_ctx.s;
 
 	sg = session_group_find(s);
 	if (sg != NULL) {

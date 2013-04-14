@@ -21,8 +21,12 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "tmux.h"
+
+void	 cmdq_run_hook(struct hooks *hooks, const char *, struct cmd *,
+		struct cmd_q *);
 
 /* Create new command queue. */
 struct cmd_q *
@@ -181,6 +185,20 @@ cmdq_run(struct cmd_q *cmdq, struct cmd_list *cmdlist)
 	}
 }
 
+/* Run hooks based on the hooks prefix (before/after). */
+void
+cmdq_run_hook(struct hooks *hooks, const char *prefix, struct cmd *cmd,
+		    struct cmd_q *cmdq)
+{
+	struct hook     *h;
+	char            *s;
+
+	xasprintf(&s, "%s-%s", prefix, cmd->entry->name);
+	if ((h = hooks_find(hooks, s)) != NULL)
+		hooks_run(h, cmdq);
+	free(s);
+}
+
 /* Add command list to queue. */
 void
 cmdq_append(struct cmd_q *cmdq, struct cmd_list *cmdlist)
@@ -198,12 +216,14 @@ int
 cmdq_continue(struct cmd_q *cmdq)
 {
 	struct cmd_q_item	*next;
+	struct hooks		*hooks;
 	enum cmd_retval		 retval;
 	int			 empty, guard;
 	char			 s[1024];
 
 	notify_disable();
 
+	cmd_set_context(cmdq);
 	empty = TAILQ_EMPTY(&cmdq->queue);
 	if (empty)
 		goto empty;
@@ -218,15 +238,38 @@ cmdq_continue(struct cmd_q *cmdq)
 		next = TAILQ_NEXT(cmdq->item, qentry);
 
 		while (cmdq->cmd != NULL) {
+			/*
+			 * If the command has prepare() defined, call it since it will
+			 * set up the execution context of commands---including hooks.
+			 */
+			if (cmdq->cmd->entry->prepare != NULL)
+				cmdq->cmd->entry->prepare(cmdq->cmd, cmdq);
+
+			/*
+			 * If we set no session via this---or the prepare() function
+			 * wasn't defined, then use the global hooks, otherwise used
+			 * the intended session's hooks when running the command.
+			 */
+			if (cmdq->cmd_ctx.s != NULL)
+				hooks = &cmdq->cmd_ctx.s->hooks;
+			else
+				hooks = &global_hooks;
+
 			cmd_print(cmdq->cmd, s, sizeof s);
 			log_debug("cmdq %p: %s (client %d)", cmdq, s,
-			    cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
+					cmdq->client != NULL ? cmdq->client->ibuf.fd : -1);
 
 			cmdq->time = time(NULL);
 			cmdq->number++;
 
 			guard = cmdq_guard(cmdq, "begin");
+
+			cmdq_run_hook(hooks, "before", cmdq->cmd, cmdq);
 			retval = cmdq->cmd->entry->exec(cmdq->cmd, cmdq);
+			if (cmdq->cmd->entry->prepare != NULL)
+				cmdq->cmd->entry->prepare(cmdq->cmd, cmdq);
+			cmdq_run_hook(hooks, "after", cmdq->cmd, cmdq);
+
 			if (guard) {
 				if (retval == CMD_RETURN_ERROR)
 				    cmdq_guard(cmdq, "error");
