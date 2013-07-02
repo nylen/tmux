@@ -16,3 +16,7 @@ Makefile
 Makefile.in
 configure
 tmux.1.*
+*.tgz
+description-pak
+doc-pak
+*.deb
