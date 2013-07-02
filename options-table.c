@@ -36,7 +36,7 @@ const char *options_table_mode_keys_list[] = {
 	"emacs", "vi", NULL
 };
 const char *options_table_mode_mouse_list[] = {
-	"off", "on", "copy-mode", NULL
+	"off", "on", "no-copy", "scroll-only", NULL
 };
 const char *options_table_clock_mode_style_list[] = {
 	"12", "24", NULL

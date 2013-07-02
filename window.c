@@ -1053,6 +1053,8 @@ void
 window_pane_mouse(
     struct window_pane *wp, struct session *sess, struct mouse_event *m)
 {
+	int	mode_mouse;
+
 	if (!window_pane_visible(wp))
 		return;
 
@@ -1064,8 +1066,10 @@ window_pane_mouse(
 	m->y -= wp->yoff;
 
 	if (wp->mode != NULL) {
-		if (wp->mode->mouse != NULL &&
-		    options_get_number(&wp->window->options, "mode-mouse"))
+		mode_mouse = options_get_number(&wp->window->options,
+		                                "mode-mouse");
+		if (wp->mode->mouse != NULL && (mode_mouse == 1
+		    || (mode_mouse == 3 && m->event == MOUSE_EVENT_WHEEL)))
 			wp->mode->mouse(wp, sess, m);
 	} else if (wp->fd != -1)
 		input_mouse(wp, sess, m);
